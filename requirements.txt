@@ -1,0 +1,7 @@
+flask
+gunicorn
+python-dotenv
+google-generativeai
+groq
+PyPDF2
+
