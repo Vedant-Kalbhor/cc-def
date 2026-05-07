@@ -22,9 +22,11 @@ log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
+app.secret_key = os.getenv(
+    "FLASK_SECRET_KEY",
+    "dev-secret-key"
+)
 
-# Prevent large upload issues
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -34,9 +36,9 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 UPLOAD_FOLDER = "uploads"
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# In-memory PDF store
 PDF_CONTEXT_STORE = {}
 
 # ─────────────────────────────────────────
@@ -65,26 +67,31 @@ SKIP_SIGNALS = (
     "not found",
     "not supported",
     "503",
-    "service unavailable",
 )
 
 # ─────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────
-def should_skip(error_text: str):
+def should_skip(error_text):
+
     err = error_text.lower()
+
     return any(sig in err for sig in SKIP_SIGNALS)
 
 
-def call_llm(prompt: str, system: str = ""):
+def call_llm(prompt, system=""):
+
     errors = []
 
-    # ── Gemini ──
+    # ─────────────────────────
+    # Gemini
+    # ─────────────────────────
     if GEMINI_API_KEY:
 
         for model_id in GEMINI_MODELS:
 
             try:
+
                 log.info(f"[Gemini] Trying {model_id}")
 
                 model = genai.GenerativeModel(model_id)
@@ -94,30 +101,48 @@ def call_llm(prompt: str, system: str = ""):
                     if system else prompt
                 )
 
-                response = model.generate_content(full_prompt)
+                response = model.generate_content(
+                    full_prompt,
+                    generation_config={
+                        "temperature": 0.7,
+                        "max_output_tokens": 8192,
+                    }
+                )
 
                 if hasattr(response, "text") and response.text:
-                    log.info(f"[Gemini] Success: {model_id}")
-                    return response.text, f"Gemini / {model_id}"
 
-                raise Exception("Empty Gemini response")
+                    log.info(f"[Gemini] Success {model_id}")
+
+                    return (
+                        response.text,
+                        f"Gemini / {model_id}"
+                    )
+
+                raise Exception("Empty response")
 
             except Exception as e:
 
                 err = str(e)
 
                 if should_skip(err):
-                    log.warning(f"[Gemini] Skip {model_id}: {err}")
-                    errors.append(f"[Gemini/{model_id}] skipped")
+
+                    log.warning(
+                        f"[Gemini] Skip {model_id}: {err}"
+                    )
+
+                    errors.append(
+                        f"[Gemini/{model_id}] skipped"
+                    )
+
                     continue
 
-                log.error(f"[Gemini] Error {model_id}: {err}")
-                errors.append(f"[Gemini/{model_id}] {err}")
+                errors.append(
+                    f"[Gemini/{model_id}] {err}"
+                )
 
-    else:
-        log.warning("GEMINI_API_KEY missing")
-
-    # ── Groq ──
+    # ─────────────────────────
+    # Groq
+    # ─────────────────────────
     if GROQ_API_KEY:
 
         client = Groq(api_key=GROQ_API_KEY)
@@ -125,6 +150,7 @@ def call_llm(prompt: str, system: str = ""):
         messages = []
 
         if system:
+
             messages.append({
                 "role": "system",
                 "content": system
@@ -138,37 +164,47 @@ def call_llm(prompt: str, system: str = ""):
         for model_id in GROQ_MODELS:
 
             try:
+
                 log.info(f"[Groq] Trying {model_id}")
 
                 chat = client.chat.completions.create(
                     model=model_id,
                     messages=messages,
-                    max_tokens=4096
+                    max_tokens=8192,
                 )
 
-                answer = chat.choices[0].message.content
+                answer = (
+                    chat.choices[0]
+                    .message
+                    .content
+                )
 
-                log.info(f"[Groq] Success: {model_id}")
+                log.info(f"[Groq] Success {model_id}")
 
-                return answer, f"Groq / {model_id}"
+                return (
+                    answer,
+                    f"Groq / {model_id}"
+                )
 
             except Exception as e:
 
                 err = str(e)
 
                 if should_skip(err):
-                    log.warning(f"[Groq] Skip {model_id}: {err}")
-                    errors.append(f"[Groq/{model_id}] skipped")
+
+                    errors.append(
+                        f"[Groq/{model_id}] skipped"
+                    )
+
                     continue
 
-                log.error(f"[Groq] Error {model_id}: {err}")
-                errors.append(f"[Groq/{model_id}] {err}")
-
-    else:
-        log.warning("GROQ_API_KEY missing")
+                errors.append(
+                    f"[Groq/{model_id}] {err}"
+                )
 
     raise RuntimeError(
-        "All models exhausted.\n" + "\n".join(errors)
+        "All models exhausted.\n"
+        + "\n".join(errors)
     )
 
 # ─────────────────────────────────────────
@@ -232,49 +268,97 @@ def extract_text_from_pdfs(file_paths):
                         text += content
 
             combined += (
-                f"\n--- DOCUMENT: {os.path.basename(path)} ---\n"
+                f"\n--- DOCUMENT: "
+                f"{os.path.basename(path)} ---\n"
                 f"{text}\n"
             )
 
         except Exception as e:
 
             flash(
-                f"Error reading {os.path.basename(path)}: {e}",
+                f"Error reading "
+                f"{os.path.basename(path)}: {e}",
                 "error"
             )
 
     return combined
 
 # ─────────────────────────────────────────
-# System Prompts
+# AI System Prompts
 # ─────────────────────────────────────────
-PAPER_SYSTEM = (
-    "You are a visionary Principal Investigator "
-    "and Senior Researcher. "
-    "Output ONLY raw LaTeX using IEEE format."
-)
+PAPER_SYSTEM = """
+You are a world-class IEEE research paper writer.
 
-CHAT_SYSTEM = (
-    "You are an expert research assistant. "
-    "Answer ONLY from PDF context."
-)
+Generate a COMPLETE detailed IEEE-style research paper.
+
+IMPORTANT:
+- Output MUST be clean HTML content
+- DO NOT output markdown
+- DO NOT output LaTeX
+
+STRICT REQUIREMENTS:
+
+- Generate 5000–7000 words
+- Paper should become 7–8 pages
+- Expand concepts deeply
+- Add detailed technical content
+- Add comparison tables
+- Add methodology
+- Add algorithms
+- Add architecture explanations
+- Add future scope
+- Add references
+
+MANDATORY SECTIONS:
+
+1. Title
+2. Abstract
+3. Keywords
+4. Introduction
+5. Problem Statement
+6. Literature Review
+7. Existing System
+8. Proposed Methodology
+9. Architecture
+10. Algorithm
+11. Mathematical Model
+12. Experimental Results
+13. Comparative Analysis
+14. Advantages
+15. Limitations
+16. Future Scope
+17. Conclusion
+18. References
+
+Output ONLY HTML body content.
+"""
+
+CHAT_SYSTEM = """
+You are an expert research assistant.
+
+Answer ONLY from provided PDF context.
+"""
 
 # ─────────────────────────────────────────
-# Routes
+# Main Page
 # ─────────────────────────────────────────
 @app.route("/", methods=["GET", "POST"])
 def index():
 
-    latex_output = ""
+    paper_output = ""
 
     title = "Analysis of Uploaded Works"
+
     authors = "Vedant Kalbhor"
 
     saved_files = []
 
     if request.method == "POST":
 
-        title = request.form.get("title", title).strip()
+        title = request.form.get(
+            "title",
+            title
+        ).strip()
 
         authors = request.form.get(
             "authors",
@@ -292,53 +376,48 @@ def index():
 
         else:
 
-            saved_files = save_uploaded_pdfs(uploaded)
+            saved_files = save_uploaded_pdfs(
+                uploaded
+            )
 
             flash(
                 f"📄 {len(saved_files)} PDF(s) saved",
                 "info"
             )
 
-            raw_text = extract_text_from_pdfs(saved_files)
+            raw_text = extract_text_from_pdfs(
+                saved_files
+            )
 
             flash(
-                "⚙️ Generating paper...",
+                "⚙️ Generating 7–8 page paper...",
                 "info"
             )
 
             try:
 
                 prompt = f"""
-Write a novel IEEE research paper.
+Generate a COMPLETE IEEE-style research paper.
 
-Title: {title}
-Authors: {authors}
+TITLE:
+{title}
 
-Sections:
-1. Abstract
-2. Introduction
-3. Literature Review
-4. Proposed Method
-5. Results
-6. Conclusion
-7. References
+AUTHORS:
+{authors}
 
-Start with \\documentclass{{IEEEtran}}
+SOURCE CONTENT:
+{raw_text[:100000]}
 
-SOURCE:
-{raw_text[:50000]}
+IMPORTANT:
+Generate a FULL academic paper
+of approximately 7–8 pages.
+
+Output ONLY HTML.
 """
 
-                latex_output, used_model = call_llm(
+                paper_output, used_model = call_llm(
                     prompt,
                     PAPER_SYSTEM
-                )
-
-                latex_output = (
-                    latex_output
-                    .replace("```latex", "")
-                    .replace("```", "")
-                    .strip()
                 )
 
                 flash(
@@ -355,7 +434,7 @@ SOURCE:
 
     return render_template(
         "index.html",
-        latex_output=latex_output,
+        paper_output=paper_output,
         title=title,
         authors=authors,
         file_count=len(saved_files),
@@ -364,7 +443,7 @@ SOURCE:
 # ─────────────────────────────────────────
 # Chatbot Page
 # ─────────────────────────────────────────
-@app.route("/chatbot", methods=["GET"])
+@app.route("/chatbot")
 def chatbot():
 
     return render_template("chatbot.html")
@@ -432,7 +511,9 @@ def chatbot_ask():
             "error": "Empty question"
         }), 400
 
-    session_id = session.get("pdf_session_id")
+    session_id = session.get(
+        "pdf_session_id"
+    )
 
     if (
         not session_id
@@ -444,7 +525,9 @@ def chatbot_ask():
             "error": "No PDF loaded"
         }), 400
 
-    pdf_data = PDF_CONTEXT_STORE[session_id]
+    pdf_data = PDF_CONTEXT_STORE[
+        session_id
+    ]
 
     context = pdf_data["context"]
 
@@ -456,7 +539,8 @@ def chatbot_ask():
 
         history_block += (
             f"User: {turn['user']}\n"
-            f"Assistant: {turn['assistant']}\n\n"
+            f"Assistant: "
+            f"{turn['assistant']}\n\n"
         )
 
     prompt = f"""
@@ -466,10 +550,10 @@ PDF CONTEXT:
 CHAT HISTORY:
 {history_block}
 
-USER QUESTION:
+QUESTION:
 {question}
 
-ASSISTANT:
+ANSWER:
 """
 
     try:
@@ -478,8 +562,6 @@ ASSISTANT:
             prompt,
             CHAT_SYSTEM
         )
-
-        answer = answer.strip()
 
     except RuntimeError as e:
 
@@ -507,3 +589,4 @@ ASSISTANT:
 if __name__ == "__main__":
 
     app.run(debug=True)
+

@@ -1,302 +1,829 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ResearchDef — IEEE Paper Generator</title>
-  <style>
-    :root {
-      --bg: #07111f;
-      --panel: rgba(11, 20, 35, 0.82);
-      --panel-strong: #0d1a2d;
-      --line: rgba(148, 163, 184, 0.2);
-      --text: #e5eefc;
-      --muted: #94a3b8;
-      --accent: #34d399;
-      --accent-2: #38bdf8;
-      --danger: #fb7185;
-      --warning: #fbbf24;
-      --shadow: 0 24px 80px rgba(2, 8, 23, 0.45);
-      --radius: 22px;
-    }
+<meta charset="utf-8">
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top left,  rgba(56, 189, 248, 0.18), transparent 30%),
-        radial-gradient(circle at top right, rgba(52, 211, 153, 0.14), transparent 26%),
-        linear-gradient(180deg, #050b14 0%, var(--bg) 100%);
-      min-height: 100vh;
-    }
+<meta name="viewport"
+content="width=device-width, initial-scale=1">
 
-    /* ── Nav ── */
-    nav {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 32px;
-      border-bottom: 1px solid var(--line);
-      background: rgba(7,17,31,0.75);
-      backdrop-filter: blur(14px);
-      position: sticky;
-      top: 0;
-      z-index: 99;
-    }
-    nav .logo { font-weight: 700; font-size: 15px; letter-spacing: -0.03em; color: var(--accent); margin-right: auto; }
-    nav a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 13px;
-      padding: 6px 14px;
-      border-radius: 10px;
-      transition: background 0.14s, color 0.14s;
-    }
-    nav a:hover, nav a.active { background: rgba(52,211,153,0.12); color: var(--accent); }
+<title>
+ResearchDef — AI Research Paper Generator
+</title>
 
-    /* ── Shell ── */
-    .shell {
-      width: min(1280px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 32px 0 56px;
-    }
+<link rel="preconnect"
+href="https://fonts.googleapis.com">
 
-    .hero {
-      display: grid;
-      grid-template-columns: 1.3fr 0.7fr;
-      gap: 18px;
-      margin-bottom: 18px;
-    }
+<link rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
 
-    .brand, .status, .card, .output {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
-    }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+rel="stylesheet">
 
-    .brand {
-      padding: 28px;
-      position: relative;
-      overflow: hidden;
-    }
-    .brand::after {
-      content: "";
-      position: absolute;
-      inset: auto -10% -30% auto;
-      width: 260px; height: 260px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(56,189,248,0.22), transparent 68%);
-      pointer-events: none;
-    }
+<style>
 
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 7px 12px;
-      border: 1px solid rgba(52,211,153,0.28);
-      border-radius: 999px;
-      color: #bff8de;
-      background: rgba(16,31,46,0.72);
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
+:root{
 
-    .title {
-      margin: 16px 0 10px;
-      font-size: clamp(30px,4vw,54px);
-      line-height: 1.02;
-      letter-spacing: -0.05em;
-      max-width: 12ch;
-    }
+  --bg:#f5f7fb;
 
-    .subtitle {
-      max-width: 70ch;
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.7;
-      margin: 0;
-    }
+  --panel:rgba(255,255,255,0.82);
 
-    .status {
-      padding: 22px;
-      display: grid;
-      gap: 14px;
-      align-content: start;
-    }
+  --panel-solid:#ffffff;
 
-    .metric {
-      padding: 16px;
-      border-radius: 18px;
-      background: rgba(13,26,45,0.86);
-      border: 1px solid rgba(148,163,184,0.15);
-    }
-    .metric span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .metric strong { font-size: 18px; font-weight: 650; word-break: break-word; }
+  --line:rgba(148,163,184,0.18);
 
-    .card { padding: 24px; margin-top: 18px; }
+  --text:#0f172a;
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
+  --muted:#64748b;
 
-    label { display: block; margin-bottom: 8px; font-size: 13px; color: #cbd5e1; letter-spacing: 0.02em; }
+  --accent:#2563eb;
 
-    input[type="text"], textarea, input[type="file"] {
-      width: 100%;
-      border: 1px solid rgba(148,163,184,0.2);
-      background: rgba(6,11,20,0.78);
-      color: var(--text);
-      border-radius: 14px;
-      padding: 14px 15px;
-      font: inherit;
-      outline: none;
-    }
+  --accent-2:#3b82f6;
 
-    input[type="text"]:focus, textarea:focus {
-      border-color: rgba(56,189,248,0.6);
-      box-shadow: 0 0 0 4px rgba(56,189,248,0.12);
-    }
+  --success:#059669;
 
-    textarea { min-height: 150px; resize: vertical; line-height: 1.6; }
+  --danger:#dc2626;
 
-    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+  --warning:#d97706;
 
-    button {
-      appearance: none;
-      border: 0;
-      border-radius: 14px;
-      padding: 13px 18px;
-      font: inherit;
-      font-weight: 650;
-      cursor: pointer;
-      transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
-    }
-    button:hover { transform: translateY(-1px); }
+  --shadow:
+    0 20px 60px rgba(15,23,42,0.08);
 
-    .primary {
-      color: #042014;
-      background: linear-gradient(135deg, #34d399 0%, #38bdf8 100%);
-      box-shadow: 0 14px 30px rgba(56,189,248,0.2);
-    }
-    .secondary {
-      color: var(--text);
-      background: rgba(148,163,184,0.12);
-      border: 1px solid rgba(148,163,184,0.16);
-    }
+  --radius:24px;
+}
 
-    .flash-wrap { display: grid; gap: 10px; margin-bottom: 18px; }
-    .flash {
-      border-radius: 16px;
-      padding: 14px 16px;
-      border: 1px solid rgba(148,163,184,0.16);
-      background: rgba(13,26,45,0.88);
-    }
-    .flash.success { border-color: rgba(52,211,153,0.35); }
-    .flash.info    { border-color: rgba(56,189,248,0.35); }
-    .flash.warning { border-color: rgba(251,191,36,0.35); }
-    .flash.error   { border-color: rgba(251,113,133,0.35); }
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
 
-    .section-title { margin: 0 0 14px; font-size: 17px; letter-spacing: -0.02em; }
+body{
 
-    .output { margin-top: 18px; padding: 24px; }
-    .output textarea {
-      min-height: 560px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.55;
-      tab-size: 2;
-    }
+  font-family:
+    Inter,
+    sans-serif;
 
-    .footer-note { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  background:
+    radial-gradient(circle at top left,
+    rgba(59,130,246,0.10),
+    transparent 26%),
 
-    @media (max-width: 940px) {
-      .hero, .grid { grid-template-columns: 1fr; }
-      .shell { width: min(100% - 20px, 1280px); padding-top: 18px; }
-      .title { max-width: none; }
-      nav { padding: 12px 16px; }
-    }
-  </style>
+    radial-gradient(circle at bottom right,
+    rgba(37,99,235,0.08),
+    transparent 28%),
+
+    var(--bg);
+
+  color:var(--text);
+
+  min-height:100vh;
+}
+
+/* NAVBAR */
+
+nav{
+
+  position:sticky;
+
+  top:0;
+
+  z-index:100;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:space-between;
+
+  padding:16px 34px;
+
+  background:
+    rgba(255,255,255,0.72);
+
+  backdrop-filter:blur(16px);
+
+  border-bottom:
+    1px solid var(--line);
+}
+
+.logo{
+
+  font-size:20px;
+
+  font-weight:800;
+
+  letter-spacing:-0.03em;
+
+  color:var(--accent);
+}
+
+.nav-links{
+
+  display:flex;
+  gap:12px;
+}
+
+.nav-links a{
+
+  text-decoration:none;
+
+  color:var(--muted);
+
+  font-size:14px;
+
+  padding:10px 16px;
+
+  border-radius:12px;
+
+  transition:0.18s;
+}
+
+.nav-links a:hover,
+.nav-links a.active{
+
+  background:#eff6ff;
+
+  color:var(--accent);
+}
+
+/* LAYOUT */
+
+.shell{
+
+  width:min(1320px,92%);
+
+  margin:auto;
+
+  padding:38px 0 70px;
+}
+
+/* HERO */
+
+.hero{
+
+  display:grid;
+
+  grid-template-columns:
+    1.25fr 0.75fr;
+
+  gap:20px;
+
+  margin-bottom:22px;
+}
+
+.hero-card,
+.stat-card,
+.form-card,
+.paper-card{
+
+  background:var(--panel);
+
+  backdrop-filter:blur(16px);
+
+  border:1px solid var(--line);
+
+  border-radius:var(--radius);
+
+  box-shadow:var(--shadow);
+}
+
+.hero-card{
+
+  padding:38px;
+
+  position:relative;
+
+  overflow:hidden;
+}
+
+.hero-card::after{
+
+  content:"";
+
+  position:absolute;
+
+  right:-60px;
+  bottom:-60px;
+
+  width:240px;
+  height:240px;
+
+  border-radius:50%;
+
+  background:
+    radial-gradient(circle,
+    rgba(37,99,235,0.12),
+    transparent 70%);
+}
+
+.badge{
+
+  display:inline-flex;
+
+  align-items:center;
+
+  gap:10px;
+
+  padding:10px 16px;
+
+  border-radius:999px;
+
+  background:#eff6ff;
+
+  color:var(--accent);
+
+  font-size:13px;
+
+  font-weight:600;
+}
+
+.hero-card h1{
+
+  margin-top:22px;
+
+  font-size:56px;
+
+  line-height:1.02;
+
+  letter-spacing:-0.05em;
+
+  max-width:11ch;
+}
+
+.hero-card p{
+
+  margin-top:20px;
+
+  color:var(--muted);
+
+  font-size:15px;
+
+  line-height:1.8;
+
+  max-width:65ch;
+}
+
+/* STATS */
+
+.stats{
+
+  display:grid;
+
+  gap:18px;
+}
+
+.stat-card{
+
+  padding:28px;
+}
+
+.stat-card span{
+
+  display:block;
+
+  color:var(--muted);
+
+  font-size:13px;
+
+  margin-bottom:12px;
+}
+
+.stat-card strong{
+
+  font-size:28px;
+
+  font-weight:750;
+}
+
+/* FLASH */
+
+.flash{
+
+  padding:16px 18px;
+
+  border-radius:16px;
+
+  margin-bottom:14px;
+
+  font-size:14px;
+
+  border:1px solid transparent;
+}
+
+.success{
+  background:#ecfdf5;
+  color:#065f46;
+  border-color:#a7f3d0;
+}
+
+.error{
+  background:#fef2f2;
+  color:#991b1b;
+  border-color:#fecaca;
+}
+
+.warning{
+  background:#fff7ed;
+  color:#9a3412;
+  border-color:#fed7aa;
+}
+
+.info{
+  background:#eff6ff;
+  color:#1d4ed8;
+  border-color:#bfdbfe;
+}
+
+/* FORM */
+
+.form-card{
+
+  padding:30px;
+}
+
+.grid{
+
+  display:grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:18px;
+}
+
+label{
+
+  display:block;
+
+  margin-bottom:10px;
+
+  font-size:14px;
+
+  font-weight:600;
+}
+
+input{
+
+  width:100%;
+
+  padding:15px 16px;
+
+  border-radius:14px;
+
+  border:1px solid #dbe2ea;
+
+  background:white;
+
+  font:inherit;
+
+  outline:none;
+
+  transition:0.18s;
+}
+
+input:focus{
+
+  border-color:var(--accent);
+
+  box-shadow:
+    0 0 0 4px
+    rgba(37,99,235,0.12);
+}
+
+.upload-box{
+
+  margin-top:20px;
+
+  border:2px dashed #dbe2ea;
+
+  border-radius:20px;
+
+  padding:40px;
+
+  text-align:center;
+
+  background:#fbfdff;
+
+  transition:0.18s;
+}
+
+.upload-box:hover{
+
+  border-color:var(--accent);
+
+  background:#f8fbff;
+}
+
+.upload-box h3{
+
+  font-size:22px;
+}
+
+.upload-box p{
+
+  margin-top:10px;
+
+  color:var(--muted);
+
+  line-height:1.7;
+}
+
+.actions{
+
+  margin-top:22px;
+
+  display:flex;
+  gap:14px;
+}
+
+button{
+
+  border:none;
+
+  cursor:pointer;
+
+  border-radius:14px;
+
+  font:inherit;
+
+  transition:0.18s;
+}
+
+.primary-btn{
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent),
+      var(--accent-2)
+    );
+
+  color:white;
+
+  padding:16px 24px;
+
+  font-weight:700;
+
+  box-shadow:
+    0 12px 24px
+    rgba(37,99,235,0.22);
+}
+
+.primary-btn:hover{
+
+  transform:translateY(-1px);
+}
+
+.secondary-btn{
+
+  padding:16px 22px;
+
+  background:#eef2f7;
+
+  color:#0f172a;
+}
+
+/* PAPER */
+
+.paper-card{
+
+  margin-top:24px;
+
+  padding:32px;
+}
+
+.paper-header{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  margin-bottom:24px;
+}
+
+.paper-header h2{
+
+  font-size:28px;
+}
+
+.export-btn{
+
+  background:#111827;
+
+  color:white;
+
+  padding:14px 20px;
+}
+
+.paper-preview{
+
+  background:white;
+
+  border:1px solid #e5e7eb;
+
+  border-radius:20px;
+
+  padding:70px;
+
+  color:black;
+
+  line-height:1.9;
+
+  font-size:16px;
+
+  font-family:
+    "Times New Roman",
+    serif;
+
+  overflow-x:auto;
+}
+
+.paper-preview h1{
+
+  text-align:center;
+
+  font-size:34px;
+
+  margin-bottom:22px;
+}
+
+.paper-preview h2{
+
+  margin-top:34px;
+
+  margin-bottom:16px;
+
+  font-size:24px;
+}
+
+.paper-preview h3{
+
+  margin-top:24px;
+
+  margin-bottom:12px;
+}
+
+.paper-preview p{
+
+  margin-bottom:18px;
+
+  text-align:justify;
+}
+
+.paper-preview table{
+
+  width:100%;
+
+  border-collapse:collapse;
+
+  margin:24px 0;
+}
+
+.paper-preview table,
+.paper-preview th,
+.paper-preview td{
+
+  border:1px solid #d1d5db;
+}
+
+.paper-preview th,
+.paper-preview td{
+
+  padding:12px;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:980px){
+
+  .hero{
+    grid-template-columns:1fr;
+  }
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .hero-card h1{
+    font-size:42px;
+  }
+
+  .paper-preview{
+    padding:30px;
+  }
+
+  nav{
+    padding:16px 18px;
+  }
+}
+
+</style>
 </head>
+
 <body>
 
-  <nav>
-    <span class="logo">ResearchDef</span>
-    <a href="/" class="active">📄 Paper Generator</a>
-    <a href="/chatbot">💬 PDF Chatbot</a>
-  </nav>
+<nav>
 
-  <div class="shell">
-    <div class="hero">
-      <section class="brand">
-        <div class="eyebrow">IEEE Paper Generator</div>
-        <h1 class="title">AI research synthesis, cleaner workflow.</h1>
-        <p class="subtitle">
-          Upload up to 4 PDFs and generate an IEEE-style LaTeX draft. Uses Gemini with automatic Groq fallback — quota errors handled silently.
-        </p>
-      </section>
-      <aside class="status">
-        <div class="metric">
-          <span>Uploaded Files</span>
-          <strong>{{ file_count }}</strong>
-        </div>
-      </aside>
+  <div class="logo">
+    ResearchDef
+  </div>
+
+  <div class="nav-links">
+
+    <a href="/"
+    class="active">
+      📄 Paper Generator
+    </a>
+
+    <a href="/chatbot">
+      💬 PDF Chatbot
+    </a>
+
+  </div>
+
+</nav>
+
+<div class="shell">
+
+<section class="hero">
+
+  <div class="hero-card">
+
+    <div class="badge">
+      ✨ AI Powered IEEE Research Generation
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-      <div class="flash-wrap">
-        {% for category, message in messages %}
-          <div class="flash {{ category }}">{{ message }}</div>
-        {% endfor %}
-      </div>
-      {% endif %}
-    {% endwith %}
+    <h1>
+      Generate Professional Research Papers.
+    </h1>
 
-    <form class="card" method="post" enctype="multipart/form-data">
-      <div class="grid">
-        <div>
-          <label for="title">Paper Title</label>
-          <input id="title" name="title" type="text" value="{{ title }}" placeholder="Analysis of Uploaded Works">
-        </div>
-        <div>
-          <label for="authors">Authors</label>
-          <input id="authors" name="authors" type="text" value="{{ authors }}" placeholder="Vedant Kalbhor">
-        </div>
-      </div>
+    <p>
+      Upload research PDFs and automatically generate
+      complete IEEE-style academic papers with
+      methodology, literature review, references,
+      comparative analysis, and export-ready formatting.
+    </p>
 
-      <div style="margin-top:16px;">
-        <label for="pdfs">Upload PDFs (Max 4)</label>
-        <input id="pdfs" name="pdfs" type="file" accept=".pdf" multiple>
-      </div>
-
-      <div class="actions">
-        <button class="primary" type="submit">Generate Paper</button>
-        <button class="secondary" type="reset">Reset Form</button>
-      </div>
-    </form>
-
-    {% if latex_output %}
-    <section class="output">
-      <h2 class="section-title">LaTeX Output</h2>
-      <textarea readonly>{{ latex_output }}</textarea>
-      <div class="footer-note">Copy the LaTeX into Overleaf or any IEEEtran-compatible LaTeX editor.</div>
-    </section>
-    {% endif %}
   </div>
+
+  <div class="stats">
+
+    <div class="stat-card">
+      <span>Uploaded PDFs</span>
+      <strong>{{ file_count }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <span>Generated Length</span>
+      <strong>7–8 Pages</strong>
+    </div>
+
+    <div class="stat-card">
+      <span>AI Stack</span>
+      <strong>Gemini + Groq</strong>
+    </div>
+
+  </div>
+
+</section>
+
+{% with messages =
+get_flashed_messages(with_categories=true) %}
+
+{% if messages %}
+
+{% for category, message in messages %}
+
+<div class="flash {{ category }}">
+  {{ message }}
+</div>
+
+{% endfor %}
+
+{% endif %}
+
+{% endwith %}
+
+<div class="form-card">
+
+<form
+method="POST"
+enctype="multipart/form-data">
+
+<div class="grid">
+
+<div>
+
+<label>
+Paper Title
+</label>
+
+<input
+type="text"
+name="title"
+value="{{ title }}"
+placeholder="AI Driven Research Analysis"
+/>
+
+</div>
+
+<div>
+
+<label>
+Authors
+</label>
+
+<input
+type="text"
+name="authors"
+value="{{ authors }}"
+placeholder="Vedant Kalbhor"
+/>
+
+</div>
+
+</div>
+
+<div class="upload-box">
+
+<h3>
+📄 Upload Research PDFs
+</h3>
+
+<p>
+Upload multiple PDFs to generate
+a detailed IEEE-style research paper.
+</p>
+
+<input
+style="margin-top:20px;"
+type="file"
+name="pdfs"
+multiple
+accept=".pdf"
+/>
+
+</div>
+
+<div class="actions">
+
+<button
+class="primary-btn"
+type="submit">
+
+🚀 Generate Research Paper
+
+</button>
+
+<button
+class="secondary-btn"
+type="reset">
+
+Reset
+
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+{% if paper_output %}
+
+<div class="paper-card">
+
+<div class="paper-header">
+
+<h2>
+Generated Research Paper
+</h2>
+
+<button
+class="export-btn"
+onclick="window.print()">
+
+🖨 Export PDF
+
+</button>
+
+</div>
+
+<div class="paper-preview">
+
+{{ paper_output|safe }}
+
+</div>
+
+</div>
+
+{% endif %}
+
+</div>
+
 </body>
 </html>
+
